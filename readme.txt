@@ -71,6 +71,7 @@ optional arguments:
   --delay DELAY         Delay between request. In seconds
   --config CONFIG       Using of external config file for specifying fuzzing
                         requests. By dafault = False
+			In this case wuzzer should be configured via case_config.py file. Right now it already contain some examples and explanations
   --output OUTPUT       File to write fuzzing results
 
 
