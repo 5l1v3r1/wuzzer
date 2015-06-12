@@ -1,0 +1,2 @@
+pyzzuf >= 0.1
+namedlist >= 1.6
