@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 import time
 import socket
+import os
+import sys
 from socket import error as socket_error
 import multiprocessing
 import argparse
@@ -9,7 +11,8 @@ import http
 from httpRequest import *
 from generators import *
 from case_config import REQUESTS
-from utils import *
+from caseLogger import *
+
 
 # TODO: Add vectors for web apps testinx (xss etc)
 # TODO: CLient Fuzzing
@@ -27,19 +30,22 @@ DEFAULT_PORT = 80
 
 
 class Logger(multiprocessing.Process):
-    def __init__(self, result_queue, output_file=None):
+    def __init__(self, result_queue, output_file=None, verbosity=None):
         multiprocessing.Process.__init__(self)
         self.result_queue = result_queue
         self.to_file = None
         self.output = None
-        bufsize = 1
+        self.caseLoger = None
+        self.verbosity = verbosity
         if output_file is None:
             self.to_file = False
         else:
             self.to_file = True
             try:
-                self.output_all = open("{}_all.log".format(output_file), "w+", bufsize)
-                self.output_err = open("{}_errors.log".format(output_file), "w+", bufsize)
+                if os.path.isfile(output_file):
+                    os.remove(output_file)
+                self.caseLoger = CaseLogger(db_name=output_file)
+                self.caseLoger.prepare_db()
             except IOError, e:
                 print "[-] Cannot create log file:{}".format(e)
                 self.to_file = False
@@ -50,26 +56,14 @@ class Logger(multiprocessing.Process):
             if task is None:
                 self.output.close()
                 break
-            print "[!]Iteration {}".format(task.get_iteration())
-
-            if self.to_file is not True:
-                print "Current parameter: {}".format(task.get_parameter())
-                print "Payload: {}".format(task.get_payload())
-                print "Result: {}\r\n\r\n".format(task.get_result())
-            else:
-                print "Current parameter: {}".format(task.get_parameter())
-                print "Result: {}\r\n\r\n".format(task.get_result())
-                self.output_all.write("-------Iteration {}-------\r\n".format(task.get_iteration()))
-                self.output_all.write("Current Fuzzing parameter:\r\n{}\r\n".format(task.get_parameter()))
-                self.output_all.write("Payload:\r\n{}\r\n".format(task.get_payload()))
-                self.output_all.write("Result:\r\n{}\r\n\r\n\r\n".format(task.get_result()))
-                if check_response(task.get_result()) == http_err \
-                        or check_response(task.get_result()) == socket_err:
-                        self.output_err.write("-------Iteration {}-------\r\n".format(task.get_iteration()))
-                        self.output_err.write("Payload:\r\n{}\r\n".format(task.get_payload()))
-                        self.output_err.write("Result:\r\n{}\r\n\r\n\r\n".format(task.get_result()))
-                        print "Payload: {}\r\n\r\n".format(task.get_payload())
-                        print "[!]ERROR: {}\r\n\r\n".format(task.get_result())
+            #print "[!]Iteration {}".format(task.get_iteration())
+            #print "Current parameter: {}".format(task.get_parameter())
+            #print "Payload: {}".format(task.get_payload())
+            #print "Result: {}\r\n\r\n".format(task.get_result())
+            if self.to_file is True:
+                self.caseLoger.write_case(task.get_iteration(), task.get_parameter(), task.get_payload(),
+                                          str(task.get_task()), str(task.get_result()),
+                                          check_response(task.get_result()))
 
     def stop(self):
         try:
@@ -100,7 +94,7 @@ class Sender(multiprocessing.Process):
             if self.delay > 0:
                 time.sleep(self.delay)
             self.task = self.task_queue.get()
-            print self.task.get_task()
+            #print self.task.get_task()
             if self.task.get_task() is None:
                 print "[!]{}: Exiting".format(self.name)
                 break
@@ -418,6 +412,13 @@ def main(threads, host, proxy, modes, methods, delay, ext_config, logfile):
     exit(0)
 
 if __name__ == "__main__":
+    proxy = None
+    modes = None
+    methods = None
+    target = None
+    url_parameters = None
+    logfile = None
+
     THREADS_HELP = "Number of threads for sending requests"
     PROXY_HELP = "Proxy\'s host:port, if required. Example:127.0.0.1:8080"
     MODE_HELP = "Fuzzing modes. By default \'headers\' only will be fuzzed"
@@ -426,7 +427,7 @@ if __name__ == "__main__":
     TARGET_HELP = "Target\'s host:port (default port: 80). Example: www.google.com:80\n"
     DELAY_HELP = "Delay between request. In seconds\n"
     CONFIG_HELP = "Using of external config file for specifying fuzzing requests. By dafault = False\n"
-    OUTPUT_HELP = "File to write fuzzing results\n"
+    OUTPUT_HELP = "SQLite db file to write fuzzing results\n"
     parser = argparse.ArgumentParser(description="Wuzzer: The Dumbest HTTP fuzzer")
     parser.add_argument("--threads", type=int, help=THREADS_HELP)
     parser.add_argument("--proxy", help=PROXY_HELP)
@@ -439,12 +440,6 @@ if __name__ == "__main__":
     parser.add_argument("--output", help=OUTPUT_HELP)
 
     args = parser.parse_args()
-    proxy = None
-    modes = None
-    methods = None
-    target = None
-    url_parameters = None
-    logfile = None
     # Parse fuzzing mode
     modes = args.mode
     methods = args.method
@@ -452,7 +447,7 @@ if __name__ == "__main__":
     ext_config = args.config
     # Parse & Check target host
     target = args.target.split(":")
-    if len(target) <2:
+    if len(target) < 2:
         target.append(str(DEFAULT_PORT))
     try:
         int(target[1])
@@ -487,7 +482,7 @@ if __name__ == "__main__":
     print "\t[!]Number of threads =  {}".format(threads)
     print "\t[!]Networks\'s Options:"
     print "\t\t[+]Target: {} {}".format(target[0],target[1])
-    host = (target[0],int(target[1]))
+    host = (target[0], int(target[1]))
 
     if proxy is not None:
         proxy_host = (proxy[0], int(proxy[1]))
@@ -500,5 +495,9 @@ if __name__ == "__main__":
     print "\t\t[+]Methods to test: {}".format(", ".join(m for m in methods))
     if args.output is not None:
         logfile = args.output
-
+        if os.path.isfile(logfile) is True:
+            answer = question("{} file already exists. Overwrite?".format(logfile))
+            if answer is False:
+                print "[!] DB file will not be overwritten. Exiting"
+                sys.exit(-1)
     main(threads, host, proxy_host, modes, methods, delay, ext_config, logfile)

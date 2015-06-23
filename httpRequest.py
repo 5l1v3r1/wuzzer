@@ -44,7 +44,7 @@ class HTTPRequest():
 
     def use_default_config(self):
         self.url = [
-           PATH(type="path", name="loginurl", delimiter=None, value="http%3a%2f%2f10.197.188.1%3a0%2fwww%2flogin.chi%3fres%3dnotyet%26uamip%3d10.197.188.1%26uamport%3d8080%26challenge%3d00000000000000000000000000000000%26called%3d00-C0-3A-6A-28-DF%26mac%3d94-39-E5-18-45-63%26ip%3d10.197.188.52%26nasid%3dsapsan12%26sessionid%3d555f7a720000008f%26userurl%3dhttp%253a%252f%252f10.197.188.1%253a8080%252f", content="string"),
+           #PATH(type="path", name="loginurl", delimiter=None, value="/", content="string"),
            #PATH(type="path", name="", delimiter=None, value="UsageTypesInfo", content="string"),
         ]
         self.post_data = [
