@@ -80,11 +80,12 @@ class CaseLogger:
         if db_name is not None:
             self.db_name = db_name
         self.conn = sqlite3.connect(self.db_name)
+        self.conn.text_factory = str
         self.cur = self.conn.cursor()
 
     def prepare_db(self):
             self.cur.execute("CREATE TABLE IF NOT EXISTS {} (iteration INTEGER PRIMARY KEY, time integer,"
-                             " parameter TEXT, payload TEXT, request TEXT, response TEXT, result TEXT)".format(self.TABLE_NAME))
+                             " parameter TEXT, payload BLOB, request BLOB, response TEXT, result TEXT)".format(self.TABLE_NAME))
             self.conn.commit()
 
     def get_last_iter(self):
@@ -113,16 +114,19 @@ class CaseLogger:
         # stamp = mktime(now.timetuple())
         query = "INSERT INTO {} VALUES (?,?,?,?,?,?,?)".format(self.TABLE_NAME)
         try:
-            self.cur.execute(query, (iteration, now, parameter, payload, request, response, result.upper()))
+            self.cur.execute(query, (iteration, now, parameter, str(payload), request, response, result.upper()))
             self.conn.commit()
         except sqlite3.IntegrityError:
             raise ValueError("DuplicateIteration")
         return 0
 
+    def close_db(self):
+        self.conn.commit()
+        self.conn.close()
 
 
 if __name__ == '__main__':
-    log = CaseLogger()
+    log = CaseLogger("test.db")
     log.prepare_db()
     req = ''.join(("GET / HTTP/1.1\r\n",
                    "Accept-Charset: utf-8\r\n",

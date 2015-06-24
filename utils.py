@@ -2,6 +2,11 @@
 from namedlist import namedlist
 import sys
 
+
+FUZZMODES = ["headers", "post-data", "url-data", "whole-request", "poc"]
+HTTP_METHODS = ["HEAD", "GET", "POST", "OPTIONS", "PUT", "DELETE", "TRACE", "CONNECT"]
+INPUT = ["wuzzer", "custom", "pcap"]
+
 """HTTP HEADER SPECIFICATION"""
 HEADER = namedlist("HEADER", "name delimiter value content default fuzz")
 """HTTP POST DATA SPECIFICATION"""
