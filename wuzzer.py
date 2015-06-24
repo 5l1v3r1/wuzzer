@@ -3,6 +3,7 @@
 import time
 import socket
 import os
+from sys import stdout
 from socket import error as socket_error
 import multiprocessing
 import argparse
@@ -26,13 +27,12 @@ DEFAULT_PORT = 80
 
 
 class Logger(multiprocessing.Process):
-    def __init__(self, result_queue, workers_count, output_file=None, verbosity=None):
+    def __init__(self, result_queue, workers_count, output_file=None):
         multiprocessing.Process.__init__(self)
         self.result_queue = result_queue
         self.to_file = None
         self.output = None
         self.caseLoger = None
-        self.verbosity = verbosity
         self.completed_workers = 0
         self.workers_count = workers_count
         if output_file is None:
@@ -40,7 +40,6 @@ class Logger(multiprocessing.Process):
         else:
             self.to_file = True
             try:
-                print 123
                 if os.path.isfile(output_file):
                     os.remove(output_file)
                 self.caseLoger = CaseLogger(db_name=output_file)
@@ -69,16 +68,13 @@ class Logger(multiprocessing.Process):
     def handle_task(self):
             while True:
                 task = self.result_queue.get()
-                print task
                 if task is None:
+                    self.completed_workers +=1
                     if self.completed_workers == self.workers_count:
-                        print self.completed_workers
                         break
                 else:
-                #print "[!]Iteration {}".format(task.get_iteration())
-                #print "Current parameter: {}".format(task.get_parameter())
-                #print "Payload: {}".format(task.get_payload())
-                #print "Result: {}\r\n\r\n".format(task.get_result())
+                    stdout.write("\r{} cases left to log\t\t\t\t".format(self.result_queue.qsize()))
+                    stdout.flush()
                     if self.to_file is True:
                         self.caseLoger.write_case(task.get_iteration(), task.get_parameter(), task.get_payload(),
                                                   str(task.get_task()), str(task.get_result()),
@@ -87,7 +83,7 @@ class Logger(multiprocessing.Process):
 
 class Sender(multiprocessing.Process):
 
-    def __init__(self, task_queue, result_queue, host, delay, verbosity=None):
+    def __init__(self, task_queue, result_queue, host, delay):
         multiprocessing.Process.__init__(self)
         self.task_queue = task_queue
         self.result_queue = result_queue
@@ -105,7 +101,6 @@ class Sender(multiprocessing.Process):
                     time.sleep(self.delay)
                 self.task = self.task_queue.get()
                 if self.task is None:
-                    print 111
                     break
                 if sleeping_flag is not True:
                     res = self.send(self.task.get_task())
@@ -119,8 +114,8 @@ class Sender(multiprocessing.Process):
                     sleeping_time = 10
                     print "Remained queue: {}".format(self.task_queue.qsize())
                     self.result_queue.put(self.task)
-                    #print "QUEUE1 SIZE = {}".format(self.result_queue.qsize())
             self.result_queue.put(None)
+            print "[!]{}:All tasks done".format(self.name)
         except KeyboardInterrupt:
             self.result_queue.put(self.task)
             pass
@@ -158,7 +153,7 @@ class Sender(multiprocessing.Process):
 
 class Populator(multiprocessing.Process):
 
-    def __init__(self, task_queue, host, proxy, modes, methods, ext_config, workers_count, verbosity=None):
+    def __init__(self, task_queue, host, proxy, modes, methods, ext_config, workers_count):
         multiprocessing.Process.__init__(self)
         self.task_queue = task_queue
         self.methods = methods
@@ -226,11 +221,9 @@ def main(threads, host, proxy, modes, methods, delay, ext_config, logfile):
         for w in workers:
             w.stop()
             w.join()
-    print "NOT FINISHED"
     for w in workers:
         w.stop()
         w.join()
-    print "FINISHED"
 
 if __name__ == "__main__":
     proxy = None
@@ -249,8 +242,6 @@ if __name__ == "__main__":
     DELAY_HELP = "Delay between request. In seconds\n"
     CONFIG_HELP = "Using of external config file for specifying fuzzing requests. By dafault = False\n"
     OUTPUT_HELP = "SQLite db file to write fuzzing results\n"
-    VERBOSITY_HELP = "Verbosity level from 0 till 3(Default: 0). 0 - No output at all, 3 - maximum verbosity\n"
-
     parser = argparse.ArgumentParser(description="Wuzzer: The Dumbest HTTP fuzzer")
     parser.add_argument("--threads", type=int, help=THREADS_HELP)
     parser.add_argument("--proxy", help=PROXY_HELP)
@@ -261,7 +252,6 @@ if __name__ == "__main__":
     parser.add_argument("--delay", type=float, default=0, help=DELAY_HELP)
     parser.add_argument("--config", type=bool, default=False, help=CONFIG_HELP)
     parser.add_argument("--output", help=OUTPUT_HELP)
-    parser.add_argument("--verbosity", help=VERBOSITY_HELP)
 
     args = parser.parse_args()
     # Parse fuzzing mode
