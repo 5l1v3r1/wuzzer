@@ -57,7 +57,7 @@ class Logger(multiprocessing.Process):
 
     def stop(self):
         print "\r\n[!]{}: Trying to save all ramained cases to db...".format(self.name)
-        print "{} cases remains".format(self.result_queue.qsize())
+        print "[!]{} cases remains".format(self.result_queue.qsize())
         if self.result_queue.qsize() > 0:
             self.handle_task()
         try:
@@ -74,7 +74,7 @@ class Logger(multiprocessing.Process):
                     if self.completed_workers == self.workers_count:
                         break
                 else:
-                    stdout.write("\r{} cases left to log\t\t\t\t".format(self.result_queue.qsize()))
+                    stdout.write("\r[!]{} cases left to log\t\t\t\t".format(self.result_queue.qsize()))
                     stdout.flush()
                     if self.to_file is True:
                         self.caseLoger.write_case(task.get_iteration(), task.get_parameter(), task.get_payload(),

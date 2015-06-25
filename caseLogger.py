@@ -86,7 +86,7 @@ class CaseLogger:
         self.cur = self.conn.cursor()
 
     def prepare_db(self):
-            self.cur.execute("CREATE TABLE IF NOT EXISTS {} (iteration INTEGER PRIMARY KEY, time integer,"
+            self.cur.execute("CREATE TABLE IF NOT EXISTS {} (iteration INTEGER, time integer,"
                              " parameter TEXT, payload BLOB, request BLOB, response TEXT, result TEXT)".format(self.TABLE_NAME))
             self.conn.commit()
 
