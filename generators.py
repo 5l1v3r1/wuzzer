@@ -79,7 +79,7 @@ def basic_header_generator(name):
         dictionary = MIMETYPES
     basic_value = dictionary[random.randint(0,len(dictionary)-1)]
     for step in [1, 10, 100 , 1000, 10000]:
-        basic_value += ", ".format(dictionary[random.randint(0,len(dictionary)-1)])
+        basic_value += ", ".format(dictionary[random.randint(0, len(dictionary)-1)])
         yield basic_value * step
     basic_value = dictionary[random.randint(0,len(dictionary)-1)]
     basic_gen = string_generator(basic_value)
@@ -115,6 +115,45 @@ def request_generator(request):
     yield request[:pos.start()] + replacement*10 + request[pos.start()+len(delimiter):]
     yield request[:pos.start()] + replacement*100 + request[pos.start()+len(delimiter):]
 """Uncompromisingly stolen from sulley (https://github.com/OpenRCE/sulley/)"""
+
+
+def cookie_generator(value=None):
+    if value is None:
+        raise StopIteration
+    key_value_delimiter = "="
+    cookie_delimiter = ";"
+    cookies = {}
+
+    for c in value.split(cookie_delimiter):
+        pair = c.split(key_value_delimiter, 1)
+        cookies[pair[0]] = pair[1]
+    for key in cookies:
+        tmp_cookie_value = cookies[key]
+        if is_float(cookies[key]) is True:
+            cookie_value = int_generator()
+        else:
+            cookie_value = string_generator(cookies[key])
+        while True:
+            try:
+                cookies[key] = cookie_value.next()
+                yield ';'.join("{}={}".format(k, cookies[k]) for k in cookies)
+            except StopIteration:
+                cookies[key] = tmp_cookie_value
+                break
+    for pos in [m.start() for m in re.finditer(key_value_delimiter, value)]:
+        delim_gen = delimiter_generator(value[pos])
+        while True:
+            try:
+                yield "{}{}{}".format(value[:pos],delim_gen.next(), value[pos+1:])
+            except StopIteration:
+                break
+    for pos in [m.start() for m in re.finditer(cookie_delimiter, value)]:
+        delim_gen = delimiter_generator(value[pos])
+        while True:
+            try:
+                yield "{}{}{}".format(value[:pos],delim_gen.next(), value[pos+1:])
+            except StopIteration:
+                break
 
 
 def delimiter_generator(value="\r\n"):
@@ -424,6 +463,7 @@ if __name__ == "__main__":
                    "Cache-Control: s-maxage=1062309894735254426, no-store",
                    "Referer: 172.16.10.65:50000",
                    "Accept: image/jpeg, application/x-ms-application, image/gif, application/xaml+xml, image/pjpeg, application/x-ms-xbap, */*",
+                   "Cookie: cookie1=azaa;PHPSESSID=1adasd2334234sdfsdfad4332c;fuckingGoogleCookie=123=OHLOL"
                    "Accept-Encoding: ",
                    "Content-Length: 0",
                    "Content-Type: application/x-www-form-urlencoded",
@@ -432,15 +472,12 @@ if __name__ == "__main__":
                    "Range: bytes=0-1000",
                    "Authorization: Basic dXNlcjpwdWJsaWM="])
 
-
-
-
-
-    #basic_gen = request_generator(basic_value)
-    #print basic_gen
-    #while True:
-    #    try:
-    #        print basic_gen.next()
-    #        print "\r\n====\r\n"
-    #    except StopIteration:
-    #        break
+    cookie_gen = cookie_generator("decimal=12;a=b")
+    i = 0
+    while True:
+        try:
+            cookie_gen.next()
+            i+=1
+        except StopIteration:
+            break
+    print i

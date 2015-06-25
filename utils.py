@@ -1,6 +1,5 @@
 """Utility module with types difinitions"""
 from namedlist import namedlist
-import sys
 
 
 FUZZMODES = ["headers", "post-data", "url-data", "whole-request", "poc"]
@@ -16,15 +15,15 @@ PATH = namedlist("PATH", "type delimiter name value content")
 """FIRST LINE OF HTTP REQUEST"""
 FIRSTLINER = namedlist("FIRSTLINER", "method url version")
 """TASK format"""
-HEADER_GEN_MAP = {"Connection":"connection",
-                  "Accept-Charset":"acceptcharset",
-                  "Accept-Language":"acceptlanguage",
-                  "Accept":"accept",
-                  "Accept-Encoding":"acceptencoding",
-                  "Content-Type":"contenttype",
-                  "Range":"range",
-                  "Authorization":"basic_auth",
-                  }
+HEADER_GEN_MAP = {"Connection": "connection",
+                  "Accept-Charset": "acceptcharset",
+                  "Accept-Language": "acceptlanguage",
+                  "Accept": "accept",
+                  "Accept-Encoding": "acceptencoding",
+                  "Content-Type": "contenttype",
+                  "Range": "range",
+                  "Authorization": "basic_auth",
+                  "Cookie": "cookie"}
 
 BYTE = 8
 WORD = 16
@@ -32,6 +31,12 @@ DWORD = 32
 QWORD = 64
 VALID_PROMPTS = {'yes': True, 'y': True, 'no': False, 'n': False}
 
+def is_float(value):
+    try:
+        float(value)
+        return True
+    except ValueError:
+        return False
 
 def question(msg):
     while True:
