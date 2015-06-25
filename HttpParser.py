@@ -36,20 +36,25 @@ class HttpParser:
             version = version.split("/")[1]
         except (IndexError, ValueError):
             raise ValueError("InvalidRequest")
-        path, parameters = url.split("?")
+        if "?" in url:
+            path, parameters = url.split("?")
+        else:
+            path = url
+            parameters = None
         for directory in path.split("/")[1:]:
             # PATH = namedlist("PATH", "type delimiter name value content")
             url_data.append(PATH(type="path", delimiter=None, name="", value=directory, content="path"))
-        for pair in parameters.split("&"):
-            parameter = pair.split("=")
-            if len(parameter) != 2:
-                raise ValueError("InvalidRequest")
-            if is_float(parameter[1]) is True:
-                act_content = "integer"
-            else:
-                act_content = "string"
-            # PATH = namedlist("PATH", "type delimiter name value content")
-            url_data.append(PATH(type=act_content, name=parameter[0], delimiter="=", value=parameter[1], content=act_content))
+        if parameters is not None:
+            for pair in parameters.split("&"):
+                parameter = pair.split("=")
+                if len(parameter) != 2:
+                    raise ValueError("InvalidRequest")
+                if is_float(parameter[1]) is True:
+                    act_content = "integer"
+                else:
+                    act_content = "string"
+                # PATH = namedlist("PATH", "type delimiter name value content")
+                url_data.append(PATH(type=act_content, name=parameter[0], delimiter="=", value=parameter[1], content=act_content))
         return method, url_data, version
 
     def parse_headers(self, request):
@@ -125,24 +130,24 @@ class HttpParser:
 
 if __name__ == "__main__":
 
-    test_request = '\r\n'.join(["POST /admin/createProject.html?param1=why&param2=so&param3=serious&test=123 HTTP/1.1",
-                               "Host: 172.16.2.107",
-                               "User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:37.0) Gecko/20100101 Firefox/37.0",
-                               "Accept: text/javascript, text/html, application/xml, text/xml, */*",
-                               "Accept-Language: en-US,en;q=0.5",
-                               "Accept-Encoding: gzip, deflate",
-                               "X-Requested-With: XMLHttpRequest",
-                               "X-Prototype-Version: 1.7.2",
-                               "Content-Type: application/x-www-form-urlencoded; charset=UTF-8",
-                               "Referer: http://172.16.2.107:8111/admin/createProject.html?cameFromUrl=%2Fadmin%2Fadmin.html%3Fitem%3Dprojects",
-                               "Content-Length: 221",
-                               "Cookie: TCSESSIONID=D77CBCBC2D677102B2CB3F1A5DC4E10D; __test=1;",
-                               "DNT: 1",
-                               "Connection: keep-alive",
-                               "Pragma: no-cache",
-                               "Cache-Control: no-cache",
-                               "",
-                               "param1=hello&param2=world&test=azaza"])
+    test_request = "\r\n".join(["POST webdynpro/dispatcher/sap.com/tc~esi~esp~wsnav~ui/WSNavigator HTTP/1.1",
+        "Host: 127.0.0.1",
+        "User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:38.0) Gecko/20100101 Firefox/38.0",
+        "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language: en-US,en;q=0.5",
+        "Accept-Encoding: gzip, deflate",
+        "X-Requested-With: XMLHttpRequest",
+        "Content-Type: application/x-www-form-urlencoded; charset=UTF-8",
+        "Referer: http://172.16.10.65:50000/webdynpro/dispatcher/sap.com/tc~esi~esp~wsnav~ui/WSNavigator",
+        "Content-Length: 757",
+        "Cookie: PHPSESID=aaa12134567cdbeee123456a;cookie2=zaza",
+        "DNT: 1",
+        "Connection: keep-alive",
+        "Pragma: no-cache",
+        "Cache-Control: no-cache",
+        "",
+        "param1=oh&param2=lol&param3=123"
+        ])
 
     parser = HttpParser(test_request)
     parser.parse_request()
