@@ -18,6 +18,8 @@ def check_response(message):
                 or (message.errno == errno.ECONNRESET) \
                 or (message.errno == errno.ENETRESET):
             return socket_err
+        else:
+            return message.errno
     else:
         return "OK"
 
@@ -113,8 +115,12 @@ class CaseLogger:
         now = datetime.now()
         # stamp = mktime(now.timetuple())
         query = "INSERT INTO {} VALUES (?,?,?,?,?,?,?)".format(self.TABLE_NAME)
+        if result is None:
+            result = "NO RESULT"
+        else:
+            result = str(result).upper()
         try:
-            self.cur.execute(query, (iteration, now, parameter, str(payload), request, response, result.upper()))
+            self.cur.execute(query, (iteration, now, parameter, str(payload), request, response, result))
             self.conn.commit()
         except sqlite3.IntegrityError:
             raise ValueError("DuplicateIteration")

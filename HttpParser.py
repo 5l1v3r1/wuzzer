@@ -88,16 +88,19 @@ class HttpParser:
         pos = req_tmp.index("")
         # ToDo: For now parses only x-www-form-urlencoded i.e. simplest post data
         if pos is not None:
-            for pair in req_tmp[pos+1].split("&"):
-                parameter = pair.split("=")
-                if len(parameter) != 2:
-                    raise ValueError("InvalidRequest")
-                if is_float(parameter[1]) is True:
-                    act_content = "integer"
-                else:
-                    act_content = "string"
-                # DATA = namedlist("DATA", "name delimiter value content")
-                data.append(DATA(name=parameter[0], delimiter="=", value=parameter[1], content=act_content))
+            try:
+                for pair in req_tmp[pos+1].split("&"):
+                    parameter = pair.split("=")
+                    if len(parameter) != 2:
+                        raise ValueError("InvalidRequest")
+                    if is_float(parameter[1]) is True:
+                        act_content = "integer"
+                    else:
+                        act_content = "string"
+                    # DATA = namedlist("DATA", "name delimiter value content")
+                    data.append(DATA(name=parameter[0], delimiter="=", value=parameter[1], content=act_content))
+            except Exception, e:
+                raise ValueError("InvalidRequest")
 
         # ToDo: Here to add parsing of multipart/ post data
         return data

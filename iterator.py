@@ -99,6 +99,7 @@ class Iterator(object):
     def to_next_header(self):
         self.head_string_generator = None
         self.head_basic_auth_generator = None
+        self.head_cookie_generator = None
         self.head_int_generator = None
         self.head_range_generator = None
         self.head_basic_header_generator = None
@@ -125,7 +126,8 @@ class Iterator(object):
         if "contentType" == self.request.get_header_type(self.current_header):
             self.head_basic_header_generator = basic_header_generator("contenttype")
         if "cookie" == self.request.get_header_type(self.current_header):
-            self.head_basic_header_generator = cookie_generator(self.request.get_header_value(self.current_header))
+            print self.request.get_header_value(self.current_header)
+            self.head_cookie_generator = cookie_generator(self.request.get_header_value(self.current_header))
 
     def fuzz_headers(self):
         try:

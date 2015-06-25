@@ -70,7 +70,7 @@ class HTTPRequest():
             HEADER(name="Content-Type", delimiter=":", value="*", content="contenttype", default=None, fuzz=True),
             HEADER(name="Host", delimiter=":", value="%s:%d" % self.host, content="string", default="%s:%d" % self.host,
                    fuzz=True),
-            HEADER(name="Cookie", delimiter=":", value="com.sap.engine.security.authentication.original_application_url=GET#ZWGpg5s21vtHqU0GkCjwv2DQzX%2BovrsZTDC%2B0VsYo5yj6FJhj54W3mSBgGFtRqqHr96nx%2FSW1zgHr4P%2BOFooYaggIMETz1o%2B14cPjXuny5Y%3D; saplb_*=(J2EE2213520)2213550; JSESSIONID=KMSEQ_wuAunNdQArRl_Y0g2aQp8rTQGuxiEA_SAPaJHyHb9hXU9jsYxo_B49dc1A", content="cookie", default="",
+            HEADER(name="Cookie", delimiter=":", value="JSESSION=D77CBCBC2D677102B2CB3F1A5DC4E10D; secret_cookie=1;", content="cookie", default="",
                    fuzz=True),
             HEADER(name="User-Agent", delimiter=":", value="WebInterface", content="string", default="WebInterface",
                    fuzz=True),
@@ -221,5 +221,5 @@ class HTTPRequest():
 
 if __name__ == "__main__":
     for raw_request in REQUESTS:
-        request = HTTPRequest(("127.0.0.1", 47989), method="GET", request=raw_request)
+        request = HTTPRequest(("127.0.0.1", 47989), method="GET", raw_request=raw_request)
         print request.assemble_request()

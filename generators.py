@@ -233,7 +233,7 @@ def string_generator(value):
     yield value * 10000 + "\xfe"
     yield value * 100000 + "\xfe"
 
-
+    # ToDO: Add some utf-8 chars
     bad_strings = [
         # omission.
         "",

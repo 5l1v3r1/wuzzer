@@ -3,6 +3,7 @@
 import time
 import socket
 import os
+import sys
 from sys import stdout
 from socket import error as socket_error
 import multiprocessing
@@ -112,7 +113,8 @@ class Sender(multiprocessing.Process):
                 else:
                     sleeping_flag = False
                     sleeping_time = 10
-                    print "Remained queue: {}".format(self.task_queue.qsize())
+                    #print "Current parameter: {}".format(self.task.get_parameter())
+                    #print "Remained queue: {}".format(self.task_queue.qsize())
                     self.result_queue.put(self.task)
             self.result_queue.put(None)
             print "[!]{}:All tasks done".format(self.name)
