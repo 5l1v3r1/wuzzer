@@ -87,8 +87,7 @@ class Iterator(object):
                 raise StopIteration
             self.request.set_url_parameter(self.current_url_parameter, value)
             self.current_payload = value
-        except StopIteration, e:
-            print e
+        except StopIteration:
             self.request.set_url_parameter(self.current_url_parameter, self.temp_url_parameter_value)
             self.current_url_parameter += 1
             if self.current_url_parameter == self.request.get_url_parameters_count():
@@ -149,8 +148,7 @@ class Iterator(object):
             self.current_payload = value
             self.current_parameter = self.request.get_header_name(self.current_header)
 
-        except StopIteration, e:
-            print e
+        except StopIteration:
             self.request.set_header(self.current_header, self.temp_header_value)
             self.current_header += 1
             if self.current_header == self.request.get_headers_count():
@@ -185,8 +183,7 @@ class Iterator(object):
             self.current_parameter = self.request.get_post_parameter_name(self.current_post_parameter)
             self.request.set_post_parameter(self.current_post_parameter, value)
             self.current_payload = value
-        except StopIteration, e:
-            print e
+        except StopIteration:
             self.request.set_post_parameter(self.current_post_parameter, self.temp_post_parameter_value)
             self.current_post_parameter += 1
             if self.current_post_parameter == self.request.get_post_parameters_count():

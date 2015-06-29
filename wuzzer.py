@@ -4,7 +4,6 @@ import time
 import socket
 import os
 import sys
-from sys import stdout
 from socket import error as socket_error
 import multiprocessing
 import argparse
@@ -13,12 +12,12 @@ from iterator import Iterator
 from case_config import REQUESTS
 from caseLogger import *
 from utils import *
+from datetime import datetime, timedelta
 
 # TODO: Add vectors for web apps testinx (xss etc)
 # TODO: CLient Fuzzing
 
 
-# TODO: Сделать генератор poc было бы хорошо. и тогда убрать этот дурацкий oneshot
 # TODO: Отдельный режим ВСЕМ ПИЗДЕЦ - вместо meat - херачить с помощью радамсы и ззуфа
 
 # TODO: Maybe to add time option (for example, enabling sleeping on errors etc) as a command line argument
@@ -27,14 +26,18 @@ from utils import *
 DEFAULT_PORT = 80
 
 
+
 class Logger(multiprocessing.Process):
-    def __init__(self, result_queue, workers_count, output_file=None):
+    def __init__(self, task_queue, result_queue, workers_count, output_file=None):
         multiprocessing.Process.__init__(self)
+        self.task_queue = task_queue
         self.result_queue = result_queue
         self.to_file = None
         self.output = None
-        self.caseLoger = None
+        self.caseLogger = None
+        self.task = None
         self.completed_workers = 0
+        self.saved_casses = 0
         self.workers_count = workers_count
         if output_file is None:
             self.to_file = False
@@ -43,8 +46,8 @@ class Logger(multiprocessing.Process):
             try:
                 if os.path.isfile(output_file):
                     os.remove(output_file)
-                self.caseLoger = CaseLogger(db_name=output_file)
-                self.caseLoger.prepare_db()
+                self.caseLogger = CaseLogger(db_name=output_file)
+                self.caseLogger.prepare_db()
             except IOError, e:
                 print "[-] Cannot create log file:{}".format(e)
                 self.to_file = False
@@ -56,31 +59,52 @@ class Logger(multiprocessing.Process):
             pass
 
     def stop(self):
-        print "\r\n[!]{}: Trying to save all ramained cases to db...".format(self.name)
-        print "[!]{} cases remains".format(self.result_queue.qsize())
+        print "[!]{}: Trying to save all remained cases to db...\r\n".format(self.name)
+
         if self.result_queue.qsize() > 0:
             self.handle_task()
         try:
+
             self.terminate()
+            print "\r\n"
         except Exception, e:
-            print e
+            print "[-]%s\r\n" % (str(e))
             pass
 
     def handle_task(self):
+            last_status_time = datetime.now()
+            # Hardcoded time delta to show status
+            delta = timedelta(seconds=20)
+            print "By default the delay between fuzzing status updates will be {} seconds\r\n".format(delta)
             while True:
-                task = self.result_queue.get()
-                if task is None:
-                    self.completed_workers +=1
+                self.task = self.result_queue.get()
+                if self.task is None:
+                    self.completed_workers += 1
                     if self.completed_workers == self.workers_count:
                         break
                 else:
-                    stdout.write("\r[!]{} cases left to log\t\t\t\t".format(self.result_queue.qsize()))
-                    stdout.flush()
                     if self.to_file is True:
-                        self.caseLoger.write_case(task.get_iteration(), task.get_parameter(), task.get_payload(),
-                                                  str(task.get_task()), str(task.get_result()),
-                                                  check_response(task.get_result()))
-            self.caseLoger.close_db()
+                        self.caseLogger.write_case(self.task.get_iteration(),
+                                                   self.task.get_parameter(),
+                                                   self.task.get_payload(),
+                                                   str(self.task.get_task()),
+                                                   str(self.task.get_result()),
+                                                   check_response(self.task.get_result()))
+                        self.saved_casses += 1
+                if datetime.now() > last_status_time + delta:
+                    self.show_status()
+                    last_status_time = datetime.now()
+
+            self.caseLogger.close_db()
+
+    def show_status(self):
+        print "Cases saved:{}"\
+            ";Current Iteration:{}" \
+            ";Current Payload:\"{}\"" \
+            ";Current Result:\"{}\"\r\n".format(self.saved_casses,
+                                                self.task.get_iteration(),
+                                                self.task.get_parameter(),
+                                                self.task.get_result())
 
 class Sender(multiprocessing.Process):
 
@@ -96,7 +120,7 @@ class Sender(multiprocessing.Process):
         try:
             sleeping_time = 10
             sleeping_flag = False
-            print "[!]{}: Starting".format(self.name)
+            print "[!]{}: Starting\r\n".format(self.name)
             while True:
                 if self.delay > 0:
                     time.sleep(self.delay)
@@ -108,13 +132,10 @@ class Sender(multiprocessing.Process):
                 if -1 == res:
                         sleeping_flag = True
                         sleeping_time += 10
-                        print "Will wait for...{} seconds".format(sleeping_time)
                         time.sleep(sleeping_time)
                 else:
                     sleeping_flag = False
                     sleeping_time = 10
-                    #print "Current parameter: {}".format(self.task.get_parameter())
-                    #print "Remained queue: {}".format(self.task_queue.qsize())
                     self.result_queue.put(self.task)
             self.result_queue.put(None)
             print "[!]{}:All tasks done".format(self.name)
@@ -125,8 +146,10 @@ class Sender(multiprocessing.Process):
     def stop(self):
         try:
             self.terminate()
+            print "\r\n"
+
         except Exception, e:
-            print e
+            print "[-]%s\r\n" % (str(e))
             pass
 
     def send(self, task):
@@ -148,7 +171,7 @@ class Sender(multiprocessing.Process):
             sock.close()
             return self.task.set_result(resp)
         except Exception, e:
-            print "[-]%s" % (str(e))
+            print "[-]%s\r\n" % (str(e))
             sock.close()
             return self.task.set_result(e)
 
@@ -195,21 +218,22 @@ class Populator(multiprocessing.Process):
     def stop(self):
         try:
             self.terminate()
+            print "\r\n"
         except Exception, e:
-            print e
+            print "[-]%s\r\n" % (str(e))
 
 
 def main(threads, host, proxy, modes, methods, delay, ext_config, logfile):
 
-    task_queue = multiprocessing.Queue()
-    result_queue = multiprocessing.Queue()
+    task_queue = multiprocessing.Queue(10000)
+    result_queue = multiprocessing.Queue(10000)
     workers_count = threads
     if proxy:
         worker_host = proxy
     else:
         worker_host = host
     workers = [Sender(task_queue, result_queue, worker_host, delay) for _ in xrange(workers_count)]
-    workers.append(Logger(result_queue, workers_count, logfile))
+    workers.append(Logger(task_queue,result_queue, workers_count, logfile))
     workers.append(Populator(task_queue, host, proxy, modes, methods, ext_config, workers_count))
     workers.reverse()
     for worker in workers:
@@ -234,7 +258,6 @@ if __name__ == "__main__":
     target = None
     url_parameters = None
     logfile = None
-
     THREADS_HELP = "Number of threads for sending requests"
     PROXY_HELP = "Proxy\'s host:port, if required. Example:127.0.0.1:8080"
     MODE_HELP = "Fuzzing modes. By default \'headers\' only will be fuzzed"

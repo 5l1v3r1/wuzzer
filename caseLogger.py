@@ -2,8 +2,6 @@ import sqlite3
 import errno
 from datetime import datetime
 
-from time import mktime
-
 http_err = "HTTP_ERR"
 socket_err = "SOCKET_ERR"
 timeout_err = "TIMEOUT_ERR"
