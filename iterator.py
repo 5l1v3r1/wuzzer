@@ -29,6 +29,7 @@ class Iterator(object):
         self.to_next_header()
         self.url_path_generator = None
         self.param = None
+        self.head_cookie_generator = None
         """POST PARAMETERS VARIABLES"""
         self.post_presence = False
         if self.request.get_post_parameters_count() != 0:
@@ -125,7 +126,7 @@ class Iterator(object):
         if "contentType" == self.request.get_header_type(self.current_header):
             self.head_basic_header_generator = basic_header_generator("contenttype")
         if "cookie" == self.request.get_header_type(self.current_header):
-            print self.request.get_header_value(self.current_header)
+            print "[DEBUG]{}".format(self.request.get_header_value(self.current_header))
             self.head_cookie_generator = cookie_generator(self.request.get_header_value(self.current_header))
 
     def fuzz_headers(self):

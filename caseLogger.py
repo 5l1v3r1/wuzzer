@@ -6,6 +6,8 @@ http_err = "HTTP_ERR"
 socket_err = "SOCKET_ERR"
 timeout_err = "TIMEOUT_ERR"
 def check_response(message):
+    if message is None:
+        return None
     if "502" in message or "503" in message:
         return http_err
     elif "timed out" in message:

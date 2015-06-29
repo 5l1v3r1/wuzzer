@@ -39,6 +39,9 @@ class Logger(multiprocessing.Process):
         self.completed_workers = 0
         self.saved_casses = 0
         self.workers_count = workers_count
+        # Hardcoded time delta to show status
+        self.delta = timedelta(seconds=20)
+        print "By default the delay between fuzzing status updates will be {} seconds\r\n".format(self.delta)
         if output_file is None:
             self.to_file = False
         else:
@@ -59,28 +62,23 @@ class Logger(multiprocessing.Process):
             pass
 
     def stop(self):
-        print "[!]{}: Trying to save all remained cases to db...\r\n".format(self.name)
+        print "[!]{}: Trying to save {} remained cases to db...\r\n".format(self.name, self.result_queue.qsize())
 
         if self.result_queue.qsize() > 0:
             self.handle_task()
         try:
-
             self.terminate()
-            print "\r\n"
         except Exception, e:
             print "[-]%s\r\n" % (str(e))
             pass
 
     def handle_task(self):
             last_status_time = datetime.now()
-            # Hardcoded time delta to show status
-            delta = timedelta(seconds=20)
-            print "By default the delay between fuzzing status updates will be {} seconds\r\n".format(delta)
             while True:
                 self.task = self.result_queue.get()
                 if self.task is None:
                     self.completed_workers += 1
-                    if self.completed_workers == self.workers_count:
+                    if self.completed_workers >= self.workers_count:
                         break
                 else:
                     if self.to_file is True:
@@ -91,7 +89,7 @@ class Logger(multiprocessing.Process):
                                                    str(self.task.get_result()),
                                                    check_response(self.task.get_result()))
                         self.saved_casses += 1
-                if datetime.now() > last_status_time + delta:
+                if datetime.now() > last_status_time + self.delta:
                     self.show_status()
                     last_status_time = datetime.now()
 
@@ -140,14 +138,12 @@ class Sender(multiprocessing.Process):
             self.result_queue.put(None)
             print "[!]{}:All tasks done".format(self.name)
         except KeyboardInterrupt:
-            self.result_queue.put(self.task)
+            self.result_queue.put(None)
             pass
 
     def stop(self):
         try:
             self.terminate()
-            print "\r\n"
-
         except Exception, e:
             print "[-]%s\r\n" % (str(e))
             pass
@@ -213,12 +209,12 @@ class Populator(multiprocessing.Process):
                 self.task_queue.put(None)
 
         except KeyboardInterrupt:
-            pass
+            for _ in range(self.workers_count):
+                self.task_queue.put(None)
 
     def stop(self):
         try:
             self.terminate()
-            print "\r\n"
         except Exception, e:
             print "[-]%s\r\n" % (str(e))
 
@@ -247,6 +243,7 @@ def main(threads, host, proxy, modes, methods, delay, ext_config, logfile):
         for w in workers:
             w.stop()
             w.join()
+        sys.exit(0)
     for w in workers:
         w.stop()
         w.join()
