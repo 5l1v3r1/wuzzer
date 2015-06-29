@@ -74,7 +74,9 @@ optional arguments:
 			In this case wuzzer should be configured via case_config.py file. Right now it already contain some examples and explanations
   --output OUTPUT       File to write fuzzing results
 
-
+Additional info: 
+  - For now wuzzer's queue size is hardcode limited to 10000 elements
+  - Also there is some kind of status info, showing in stdout, which is updated every 20 seconds (hardcoded too)
 	
 0x03 Requirements
  - see the requirements.txt
