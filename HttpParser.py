@@ -8,7 +8,7 @@ from namedlist import namedlist
 """FIRST LINE OF HTTP REQUEST"""
 FIRSTLINER = namedlist("FIRSTLINER", "method url version")
 """TASK format"""
-
+FILE_SEPARATOR = "-=WUZZER_SEPARATOR=-"
 class HttpParser:
 
     def __init__(self, request=None):
@@ -16,7 +16,7 @@ class HttpParser:
         if self.request is not None:
             self.parse_request()
         else:
-            self.method, self.url_data, self.version = None
+            self.method, self.url_data, self.version = None, None, None
             self.headers = None
             self.post_data = None
             self.host = None
@@ -99,8 +99,9 @@ class HttpParser:
                         act_content = "string"
                     # DATA = namedlist("DATA", "name delimiter value content")
                     data.append(DATA(name=parameter[0], delimiter="=", value=parameter[1], content=act_content))
-            except Exception, e:
-                raise ValueError("InvalidRequest")
+            except Exception:
+               # raise ValueError("InvalidRequest")
+                data = ""
 
         # ToDo: Here to add parsing of multipart/ post data
         return data
@@ -131,6 +132,30 @@ class HttpParser:
     def get_host(self):
         return self.host
 
+    def set_request(self, request):
+        self.request = request
+
+def parse_file(fname):
+    requests =[]
+    print fname
+    try:
+        with open(fname) as f:
+            content = f.readlines()
+        if content is not None:
+            tmp = ""
+            for line in content:
+                if FILE_SEPARATOR not in line:
+                    if line == "\r\n":
+                        tmp = "\r\n".join((tmp, line))
+                    else:
+                        tmp = "\r\n".join((tmp, line.strip("\n").strip("\r")))
+                else:
+                    requests.append(tmp[2:])
+                    tmp = ""
+        return requests
+    except Exception:
+        raise ValueError("Incorrect configuration file")
+
 if __name__ == "__main__":
 
     test_request = "\r\n".join(["POST webdynpro/dispatcher/sap.com/tc~esi~esp~wsnav~ui/WSNavigator HTTP/1.1",
@@ -152,5 +177,13 @@ if __name__ == "__main__":
         "param1=oh&param2=lol&param3=123"
         ])
 
-    parser = HttpParser(test_request)
-    parser.parse_request()
+    parser = HttpParser()
+    requests = parse_file("cases.txt")
+    for request in requests:
+        print request
+        parser.set_request(request)
+        parser.parse_request()
+        print parser.get_first_line()
+        print parser.get_headers()
+        print parser.get_data()
+

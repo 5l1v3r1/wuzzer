@@ -9,10 +9,10 @@ import multiprocessing
 import argparse
 import http
 from iterator import Iterator
-from case_config import REQUESTS
 from caseLogger import *
 from utils import *
 from datetime import datetime, timedelta
+from HttpParser import parse_file
 
 # TODO: Add vectors for web apps testinx (xss etc)
 # TODO: CLient Fuzzing
@@ -189,8 +189,8 @@ class Populator(multiprocessing.Process):
             jobs = 0
             for method in self.methods:
                 for mode in self.modes:
-                    if self.ext_config:
-                        raw_requests = REQUESTS
+                    if self.ext_config is not None:
+                        raw_requests = parse_file(ext_config)
                         for raw in raw_requests:
                             iterator = Iterator(self.host, mode, method, raw, proxy)
                             """(self.current_payload, self.current_parameter, self.request.assemble_request())"""
@@ -262,7 +262,7 @@ if __name__ == "__main__":
     INPUT_HELP = "Source of http request to fuzz"
     TARGET_HELP = "Target\'s host:port (default port: 80). Example: www.google.com:80\n"
     DELAY_HELP = "Delay between request. In seconds\n"
-    CONFIG_HELP = "Using of external config file for specifying fuzzing requests. By dafault = False\n"
+    CONFIG_HELP = "Name of the external config to use.\n"
     OUTPUT_HELP = "SQLite db file to write fuzzing results\n"
     parser = argparse.ArgumentParser(description="Wuzzer: The Dumbest HTTP fuzzer")
     parser.add_argument("--threads", type=int, help=THREADS_HELP)
@@ -272,7 +272,7 @@ if __name__ == "__main__":
     parser.add_argument("--input", default=INPUT[0], choices=INPUT, help=INPUT_HELP)
     parser.add_argument("--target", required=True, help=TARGET_HELP)
     parser.add_argument("--delay", type=float, default=0, help=DELAY_HELP)
-    parser.add_argument("--config", type=bool, default=False, help=CONFIG_HELP)
+    parser.add_argument("--config", default=None, help=CONFIG_HELP)
     parser.add_argument("--output", help=OUTPUT_HELP)
 
     args = parser.parse_args()
@@ -280,7 +280,6 @@ if __name__ == "__main__":
     modes = args.mode
     methods = args.method
     delay = args.delay
-    ext_config = args.config
     # Parse & Check target host
     target = args.target.split(":")
     if len(target) < 2:
@@ -329,6 +328,14 @@ if __name__ == "__main__":
     print "\t[!]Fuzzing Options:"
     print "\t\t[+]Mode: {}".format(", ".join(m for m in modes))
     print "\t\t[+]Methods to test: {}".format(", ".join(m for m in methods))
+    print args.config
+    if args.config is not None:
+        ext_config = args.config
+        if os.path.isfile(ext_config) is False:
+            print "[!] Configuration file doesn't exist. Exiting..."
+            sys.exit(-1)
+    else:
+        ext_config = args.config
     if args.output is not None:
         logfile = args.output
         if os.path.isfile(logfile) is True:
