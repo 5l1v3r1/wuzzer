@@ -69,14 +69,32 @@ optional arguments:
   --target TARGET       Target's host:port (default port: 80). Example:
                         www.google.com:80
   --delay DELAY         Delay between request. In seconds
-  --config CONFIG       Using of external config file for specifying fuzzing
-                        requests. By dafault = False
+  --config CONFIG       Name of the external config to use**
 			In this case wuzzer should be configured via case_config.py file. Right now it already contain some examples and explanations
   --output OUTPUT       File to write fuzzing results
 
 Additional info: 
-  - For now wuzzer's queue size is hardcode limited to 10000 elements
-  - Also there is some kind of status info, showing in stdout, which is updated every 20 seconds (hardcoded too)
-	
+- For now wuzzer's queue size is hardcode limited to 10000 elements
+- Also there is some kind of status info, showing in stdout, which is updated every 20 seconds (hardcoded too)
+** - Config should have the following structure to be parsed properly:
+      <RAW REQEST 1>
+      -=WUZZER_SEPARATOR=-
+      <RAW REQEST 2>
+      -=WUZZER_SEPARATOR=-
+      ...
+      <RAW REQEST n>
+      -=WUZZER_SEPARATOR=-
+Here <RAW REQEST n> is a plain request directly from the wires, e.g:
+GET /very/long/path?param1=oh&param2=lol HTTP/1.1
+Host: www.google.com:80
+User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:38.0) Gecko/20100101 Firefox/38.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate
+Referer: http://www.google.com/some/path/here/
+Cookie: Some=cookies;
+DNT: 1
+Connection: keep-alive
+
 0x03 Requirements
  - see the requirements.txt

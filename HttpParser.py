@@ -135,6 +135,7 @@ class HttpParser:
     def set_request(self, request):
         self.request = request
 
+# ToDo: Add some decorators to the request (like fuzzability, parameter types etc)
 def parse_file(fname):
     requests =[]
     print fname
