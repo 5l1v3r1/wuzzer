@@ -77,13 +77,13 @@ class CaseLogger:
     iteration = None
     cur = None
     conn = None
-
     def __init__(self, db_name=None):
         if db_name is not None:
             self.db_name = db_name
         self.conn = sqlite3.connect(self.db_name)
         self.conn.text_factory = str
         self.cur = self.conn.cursor()
+        self.write_state = 0
 
     def prepare_db(self):
             self.cur.execute("CREATE TABLE IF NOT EXISTS {} (iteration INTEGER, time integer,"
@@ -121,10 +121,15 @@ class CaseLogger:
             result = str(result).upper()
         try:
             self.cur.execute(query, (iteration, now, parameter, str(payload), request, response, result))
-            self.conn.commit()
+            self.write_state += 1
+            # Hardcoded size of records to commit at once
+            if self.write_state == 10000:
+                self.conn.commit()
+                self.write_state = 0
         except sqlite3.IntegrityError:
             raise ValueError("DuplicateIteration")
         return 0
+
 
     def close_db(self):
         self.conn.commit()
