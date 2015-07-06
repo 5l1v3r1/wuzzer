@@ -126,7 +126,6 @@ class Iterator(object):
         if "contentType" == self.request.get_header_type(self.current_header):
             self.head_basic_header_generator = basic_header_generator("contenttype")
         if "cookie" == self.request.get_header_type(self.current_header):
-            print "[DEBUG]{}".format(self.request.get_header_value(self.current_header))
             self.head_cookie_generator = cookie_generator(self.request.get_header_value(self.current_header))
 
     def fuzz_headers(self):

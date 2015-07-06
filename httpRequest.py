@@ -174,7 +174,7 @@ class HTTPRequest():
 
     def add_host_to_url(self, host):
         url = self.get_url()
-        url.insert(0, PATH(type="host", delimiter=None, name="", value="http://{}:{}".format(host[0],host[1]), content="path"))
+        url.insert(0, PATH(type="host", delimiter=None, name="", value="http://{}".format(host), content="path"))
 
     def assemble_request(self):
 
@@ -194,12 +194,14 @@ class HTTPRequest():
         if len(self.url) == 0:
             path = PATH_DELIMITER
         else:
+            if "host" != self.url[0].type:
+                path = PATH_DELIMITER
             for u in self.url:
                 if ("host" == u.type) & (check_path is True):
-                    path += str(u.value)
+                    path += str(u.value) + PATH_DELIMITER
                 if ("path" == u.type) & (check_path is True):
-                    path += PATH_DELIMITER + str(u.value)
-                if ("path" != u.type) & (check_path is True):
+                    path += str(u.value) + PATH_DELIMITER
+                if ("path" != u.type) & ("host" != u.type) & (check_path is True):
                     path += PATH_PARAMETER_DELIMITER+u.name+PARAMETER_DELIMITER+ str(u.value)
                     check_path = False
                 elif check_path is False:
@@ -222,4 +224,5 @@ class HTTPRequest():
 if __name__ == "__main__":
     for raw_request in REQUESTS:
         request = HTTPRequest(("127.0.0.1", 47989), method="GET", raw_request=raw_request)
+        request.add_host_to_url("test:80")
         print request.assemble_request()

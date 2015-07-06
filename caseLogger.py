@@ -134,6 +134,9 @@ class CaseLogger:
                 self.write_state = 0
         except sqlite3.IntegrityError:
             raise ValueError("DuplicateIteration")
+        #TODO: get rid of krutches
+        except sqlite3.OperationalError as e:
+            pass
         return 0
 
     def close_db(self):

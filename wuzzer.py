@@ -107,7 +107,7 @@ class Logger(multiprocessing.Process):
 """Class used to get fuzzing tasks Polulator and send them to the target"""
 class Sender(multiprocessing.Process):
 
-    def __init__(self, task_queue, result_queue, host, delay):
+    def __init__(self, task_queue, result_queue, host, delay, secure=False):
         multiprocessing.Process.__init__(self)
         self.task_queue = task_queue
         self.result_queue = result_queue
@@ -159,7 +159,7 @@ class Sender(multiprocessing.Process):
                 sock.connect(self.host)
             except socket_error as e:
                 # TODO: REPEAT THE SAME TASK AFTER WAITING
-                print "[-]Error connecting to host: {}".format(e)
+                print "[-]{}. Iteration {}: Error connecting to host: {}".format(self.name, self.task.get_iteration(), e)
                 if e.errno == errno.ECONNREFUSED:
                     return -1
                 else:
@@ -170,7 +170,7 @@ class Sender(multiprocessing.Process):
                 sock.close()
                 return self.task.set_result(resp)
             except Exception, e:
-                print "[-]%s\r\n" % (str(e))
+                print "[-]{}. Iteration {}: {}\r\n".format(self.name, self.task.get_iteration(), str(e))
                 sock.close()
                 return self.task.set_result(e)
         except KeyboardInterrupt:
