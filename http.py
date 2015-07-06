@@ -1,3 +1,4 @@
+__author__ = 'osakaaa'
 # Dumb implementation of mitmproxy/netlib/http
 # Original's GitHub: https://github.com/mitmproxy/netlib/tree/master/netlib
 

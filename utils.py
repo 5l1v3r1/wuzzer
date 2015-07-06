@@ -1,3 +1,4 @@
+__author__ = 'osakaaa'
 """Utility module with types difinitions"""
 from namedlist import namedlist
 

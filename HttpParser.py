@@ -138,7 +138,6 @@ class HttpParser:
 # ToDo: Add some decorators to the request (like fuzzability, parameter types etc)
 def parse_file(fname):
     requests =[]
-    print fname
     try:
         with open(fname) as f:
             content = f.readlines()

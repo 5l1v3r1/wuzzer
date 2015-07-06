@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+__author__ = 'osakaaa'
 import random
 import re
 from utils import *
