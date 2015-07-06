@@ -59,6 +59,8 @@ class Logger(multiprocessing.Process):
 
     def stop(self):
         print "[!]{}: Trying to save {} remained cases to db...\r\n".format(self.name, self.result_queue.qsize())
+        # TODO: fix the bug with terminating Senders on SIGINT
+        print "[!][BUG] THERE IS A BUG IN PROCESSING CTRL+C combination (SIGINT). Send the signal one more time please"
         if self.result_queue.qsize() > 0:
             self._handle_task()
         try:
