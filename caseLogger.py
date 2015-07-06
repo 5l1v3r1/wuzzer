@@ -1,3 +1,4 @@
+__author__ = 'osakaaa'
 import sqlite3
 import errno
 from datetime import datetime
@@ -77,10 +78,12 @@ class CaseLogger:
     iteration = None
     cur = None
     conn = None
+
     def __init__(self, db_name=None):
         if db_name is not None:
             self.db_name = db_name
         self.conn = sqlite3.connect(self.db_name)
+        self.conn.isolation_level = None
         self.conn.text_factory = str
         self.cur = self.conn.cursor()
         self.write_state = 0
@@ -114,6 +117,8 @@ class CaseLogger:
     def write_case(self, iteration, parameter, payload, request, response, result):
         now = datetime.now()
         # stamp = mktime(now.timetuple())
+        if self.write_state == 0:
+            self.cur.execute('begin')
         query = "INSERT INTO {} VALUES (?,?,?,?,?,?,?)".format(self.TABLE_NAME)
         if result is None:
             result = "NO RESULT"
@@ -123,16 +128,22 @@ class CaseLogger:
             self.cur.execute(query, (iteration, now, parameter, str(payload), request, response, result))
             self.write_state += 1
             # Hardcoded size of records to commit at once
-            if self.write_state == 10000:
+            if self.write_state >= 1000:
                 self.conn.commit()
+                self.cur.execute('commit')
                 self.write_state = 0
         except sqlite3.IntegrityError:
             raise ValueError("DuplicateIteration")
         return 0
 
-
     def close_db(self):
         self.conn.commit()
+        if self.write_state != 0:
+            try:
+                self.cur.execute('commit')
+            #TODO: get rid of krutches
+            except sqlite3.OperationalError as e:
+                pass
         self.conn.close()
 
 

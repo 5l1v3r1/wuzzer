@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+__author__ = 'osakaaa'
 import time
 import socket
 import os
@@ -26,7 +27,7 @@ from HttpParser import parse_file
 DEFAULT_PORT = 80
 
 
-
+"""Class used to log all the fuzzing tasks and the responses from the target"""
 class Logger(multiprocessing.Process):
     def __init__(self, task_queue, result_queue, workers_count, output_file=None):
         multiprocessing.Process.__init__(self)
@@ -42,37 +43,31 @@ class Logger(multiprocessing.Process):
         # Hardcoded time delta to show status
         self.delta = timedelta(seconds=20)
         print "By default the delay between fuzzing status updates will be {} seconds\r\n".format(self.delta)
-        if output_file is None:
-            self.to_file = False
-        else:
-            self.to_file = True
-            try:
-                if os.path.isfile(output_file):
-                    os.remove(output_file)
-                self.caseLogger = CaseLogger(db_name=output_file)
-                self.caseLogger.prepare_db()
-            except IOError, e:
-                print "[-] Cannot create log file:{}".format(e)
-                self.to_file = False
+        try:
+            if os.path.isfile(output_file):
+                os.remove(output_file)
+            self.caseLogger = CaseLogger(db_name=output_file)
+            self.caseLogger.prepare_db()
+        except IOError, e:
+            print "[-] Cannot create log file:{}".format(e)
 
     def run(self):
         try:
-            self.handle_task()
+            self._handle_task()
         except KeyboardInterrupt:
             pass
 
     def stop(self):
         print "[!]{}: Trying to save {} remained cases to db...\r\n".format(self.name, self.result_queue.qsize())
-
         if self.result_queue.qsize() > 0:
-            self.handle_task()
+            self._handle_task()
         try:
             self.terminate()
         except Exception, e:
             print "[-]%s\r\n" % (str(e))
-            pass
-
-    def handle_task(self):
+    """Put completed cases from resulting queue to external sqlite3 db"""
+    def _handle_task(self):
+        try:
             last_status_time = datetime.now()
             while True:
                 self.task = self.result_queue.get()
@@ -81,21 +76,24 @@ class Logger(multiprocessing.Process):
                     if self.completed_workers >= self.workers_count:
                         break
                 else:
-                    if self.to_file is True:
-                        self.caseLogger.write_case(self.task.get_iteration(),
-                                                   self.task.get_parameter(),
-                                                   self.task.get_payload(),
-                                                   str(self.task.get_task()),
-                                                   str(self.task.get_result()),
-                                                   check_response(self.task.get_result()))
-                        self.saved_casses += 1
+                    self.caseLogger.write_case(self.task.get_iteration(),
+                                               self.task.get_parameter(),
+                                               self.task.get_payload(),
+                                               str(self.task.get_task()),
+                                               str(self.task.get_result()),
+                                               check_response(self.task.get_result()))
+                    self.saved_casses += 1
                 if datetime.now() > last_status_time + self.delta:
-                    self.show_status()
+                    self._show_status()
                     last_status_time = datetime.now()
 
             self.caseLogger.close_db()
-
-    def show_status(self):
+        except KeyboardInterrupt:
+            self._show_status()
+            self.caseLogger.close_db()
+            pass
+    """Sends status message with info on successfully processed tasks to the stdout"""
+    def _show_status(self):
         print "Cases saved:{}"\
             ";Current Iteration:{}" \
             ";Current Payload:\"{}\"" \
@@ -104,6 +102,7 @@ class Logger(multiprocessing.Process):
                                                 self.task.get_parameter(),
                                                 self.task.get_result())
 
+"""Class used to get fuzzing tasks Polulator and send them to the target"""
 class Sender(multiprocessing.Process):
 
     def __init__(self, task_queue, result_queue, host, delay):
@@ -126,7 +125,7 @@ class Sender(multiprocessing.Process):
                 if self.task is None:
                     break
                 if sleeping_flag is not True:
-                    res = self.send(self.task.get_task())
+                    res = self._send(self.task.get_task())
                 if -1 == res:
                         sleeping_flag = True
                         sleeping_time += 10
@@ -148,30 +147,34 @@ class Sender(multiprocessing.Process):
             print "[-]%s\r\n" % (str(e))
             pass
 
-    def send(self, task):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(3)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    """Used to construct HTTP requests from fuzzing tasks and send them to target"""
+    def _send(self, task):
         try:
-            sock.connect(self.host)
-        except socket_error as e:
-            # TODO: REPEAT THE SAME TASK AFTER WAITING
-            print "[-]Error connecting to host: {}".format(e)
-            if e.errno == errno.ECONNREFUSED:
-                return -1
-            else:
-                sys.exit(-1)
-        try:
-            sock.sendall(task)
-            resp = sock.recv(1024).split("\r\n")[:1]
-            sock.close()
-            return self.task.set_result(resp)
-        except Exception, e:
-            print "[-]%s\r\n" % (str(e))
-            sock.close()
-            return self.task.set_result(e)
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(3)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            try:
+                sock.connect(self.host)
+            except socket_error as e:
+                # TODO: REPEAT THE SAME TASK AFTER WAITING
+                print "[-]Error connecting to host: {}".format(e)
+                if e.errno == errno.ECONNREFUSED:
+                    return -1
+                else:
+                    sys.exit(-1)
+            try:
+                sock.sendall(task)
+                resp = sock.recv(1024).split("\r\n")[:1]
+                sock.close()
+                return self.task.set_result(resp)
+            except Exception, e:
+                print "[-]%s\r\n" % (str(e))
+                sock.close()
+                return self.task.set_result(e)
+        except KeyboardInterrupt:
+            pass
 
-
+"""Class used to put fuzzing tasks to task_queue for Senders"""
 class Populator(multiprocessing.Process):
 
     def __init__(self, task_queue, host, proxy, modes, methods, ext_config, workers_count):
@@ -209,8 +212,7 @@ class Populator(multiprocessing.Process):
                 self.task_queue.put(None)
 
         except KeyboardInterrupt:
-            for _ in range(self.workers_count):
-                self.task_queue.put(None)
+            pass
 
     def stop(self):
         try:
@@ -247,6 +249,8 @@ def main(threads, host, proxy, modes, methods, delay, ext_config, logfile):
     for w in workers:
         w.stop()
         w.join()
+
+
 
 if __name__ == "__main__":
     proxy = None
