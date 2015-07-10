@@ -11,10 +11,8 @@ from namedlist import namedlist
 # TODO: ADD ZZUF MUTATIONS TO EACH TYPES OF GENERATORS
 # TODO: ADD posibility to generate large number of folders and GET-parameters in url
 # TODO: ADD XML/SOAP/JSON/... GENERATOR
-# TODO: Add support of multiple different request
 # TODO: Add state-based fuzzing (e.g. sending one request only after sending another) - just like sulley
-# TODO: Add Cookie parser
-# TODO: Add plaintext request parser & converter to httpReqest format
+
 
 DELIMITER = "\r\n"
 HEADER_DELIMITER = ":"
@@ -195,12 +193,12 @@ class HTTPRequest():
             path = PATH_DELIMITER
         else:
             if "host" != self.url[0].type:
-                path = PATH_DELIMITER
+                path = ""
             for u in self.url:
                 if ("host" == u.type) & (check_path is True):
                     path += str(u.value) + PATH_DELIMITER
                 if ("path" == u.type) & (check_path is True):
-                    path += str(u.value) + PATH_DELIMITER
+                    path += PATH_DELIMITER + str(u.value)
                 if ("path" != u.type) & ("host" != u.type) & (check_path is True):
                     path += PATH_PARAMETER_DELIMITER+u.name+PARAMETER_DELIMITER+ str(u.value)
                     check_path = False
